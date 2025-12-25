@@ -63,14 +63,14 @@ class Database {
 
             `
 		)
-
+		
 		this.queries = {
 			insertPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file_id) values (?,?,?,?,?,?,?,?,?,?)"),
-			getPosts: this.database.prepare("select p.* , count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
-			getPostById: this.database.prepare("select * from posts where id = ?"),
+			getPosts: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
+			getPostById: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at from posts where id = ?"),
 			deletePostById: this.database.prepare("delete from posts where id = ?"),
 
-			getReplies: this.database.prepare("select p.* , count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id = ? group by p.id order by p.created_at desc")
+			getReplies: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id = ? group by p.id order by p.created_at desc")
 		}
 	}
 
@@ -134,7 +134,7 @@ class Database {
 		// console.log(pathArray)
 		const questionString = Array(pathArray.length).fill("?").join(",")
 		// console.log(questionString)
-		let statement = `SELECT p.* , count(c.id) as reply_count FROM posts p left join posts c on c.parent_id = p.id WHERE p.path IN (${questionString}) group by p.id ORDER BY p.depth`
+		let statement = `SELECT p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count FROM posts p left join posts c on c.parent_id = p.id WHERE p.path IN (${questionString}) group by p.id ORDER BY p.depth`
 		// console.log(statement)
 		return this.database.prepare(statement).all(...pathArray)
 	}
