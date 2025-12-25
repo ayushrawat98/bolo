@@ -67,7 +67,7 @@ class Database {
 		this.queries = {
 			insertPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file_id) values (?,?,?,?,?,?,?,?,?,?)"),
 			getPosts: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
-			getPostById: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at from posts where id = ?"),
+			getPostById: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.path, p.depth, p.created_at from posts p where id = ?"),
 			deletePostById: this.database.prepare("delete from posts where id = ?"),
 
 			getReplies: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id = ? group by p.id order by p.created_at desc")
@@ -76,6 +76,7 @@ class Database {
 
 	insertParentPost(data) {
 		const createThread = this.database.transaction((data) => {
+			console.log(data)
 			const info = this.queries.insertPost.run(
 				data.username,
 				data.content,
@@ -98,6 +99,7 @@ class Database {
 		const createThread = this.database.transaction((data) => {
 			const parent = this.queries.getPostById.get(data.parent_id)
 			if (!parent) throw new Error('Parent not found')
+				console.log(parent)
 			const info = this.queries.insertPost.run(
 				data.username,
 				data.content,
