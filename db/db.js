@@ -105,7 +105,7 @@ class Database {
 				data.content,
 				data.ip,
 				data.path,
-				parent.depth + 1,
+				parent.depth + 1 > 10 ? 10 : parent.depth + 1,
 				data.created_at,
 				data.updated_at,
 				parent.thread_id,
