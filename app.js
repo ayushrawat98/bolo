@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import { mainRoute } from './routes/main.route.js';
 import fs from 'fs';
 import https from 'https'
+import compression from 'compression';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +15,10 @@ const app = express()
 
 if (process.env.NODE_ENV === 'development') {
 	app.use(cors())
+}
+
+if (process.env.NODE_ENV === 'production') {
+	app.use(compression())
 }
 
 app.use('/api', mainRoute)
@@ -28,7 +33,8 @@ app.use((err, req, res, next) => {
 	if(err.code && err.code == 'LIMIT_FILE_SIZE'){
 		return res.status(500).send("सञ्चिकायाः परिमाणमर्यादा (५० MB) अतिक्रान्ता।")
 	}
-	return res.status(500).send(err.message || "दोषः")
+	// err.message ||
+	return res.status(500).send("दोषः")
 })
 
 

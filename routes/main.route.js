@@ -39,6 +39,12 @@ route.post('/posts/:id',blockerWrapper, ratelimit(15000), upload.single('file'),
 	return res.status(201).send(status)
 })
 
+route.post('/posts/:id/likes',blockerWrapper, ratelimit(5000), async (req, res, next) => {
+	let status = instance.insertLike(req.params.id, req.socket.remoteAddress)
+	return res.status(201).send(status)
+})
+
+
 function blockerWrapper(req,res,next){
 	if (process.env.NODE_ENV === 'production') {
 		blocker(req, res, next)
