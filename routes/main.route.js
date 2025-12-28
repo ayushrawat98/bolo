@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import nodeIpgeoblock from 'node-ipgeoblock';
 import { ratelimit } from '../lib/ratelimit.js';
+import upload from '../lib/multer.js';
+import { filetype } from '../lib/filetype.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,9 +19,9 @@ route.get('/posts', async (req, res, next) => {
 	return res.status(200).send(data)
 })
 
-route.post('/posts', blocker, ratelimit(10000), async (req, res, next) => {
+route.post('/posts', blockerWrapper, ratelimit(15000), upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
-	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content, ip: req.socket.remoteAddress, path: '', depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: null, file_id: null }
+	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content, ip: req.socket.remoteAddress, path: '', depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: null, file: req?.file?.filename }
 	let status = instance.insertParentPost(data)
 	return res.status(201).send(status)
 })
@@ -30,9 +32,9 @@ route.get('/posts/:id', async (req, res, next) => {
 	return res.status(200).send({p : parentdata, c : replies})
 })
 
-route.post('/posts/:id', blocker, ratelimit(10000), async (req, res, next) => {
+route.post('/posts/:id',blockerWrapper, ratelimit(15000), upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
-	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content, ip: req.socket.remoteAddress, path: "", depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: req.params.id, file_id: null }
+	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content, ip: req.socket.remoteAddress, path: "", depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: req.params.id, file: req?.file?.filename }
 	let status = instance.insertChildPost(data)
 	return res.status(201).send(status)
 })
@@ -44,5 +46,31 @@ function blockerWrapper(req,res,next){
 		next()
 	}
 }
+
+
+// // Configure express.raw to handle binary streams
+// // 'type' must match the Content-Type sent by Angular
+// app.use(express.raw({ 
+//   type: (req) => true, // Match any type, or use 'application/octet-stream'
+//   limit: '10mb' 
+// }));
+
+// app.post('/upload-raw', (req, res) => {
+//   // The binary data is available in req.body as a Buffer
+//   const binaryData = req.body;
+//   const fileName = req.headers['x-file-name'] || 'uploaded_file.bin';
+
+//   if (!binaryData || binaryData.length === 0) {
+//     return res.status(400).send('No binary data received.');
+//   }
+
+//   // Save the buffer directly to disk
+//   fs.writeFile(`./uploads/${fileName}`, binaryData, (err) => {
+//     if (err) return res.status(500).send('Save failed');
+//     res.json({ message: 'File saved successfully via raw transfer' });
+//   });
+// });
+
+
 
 export { route as mainRoute }

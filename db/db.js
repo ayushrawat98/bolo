@@ -36,7 +36,7 @@ class Database {
 					thread_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
 					parent_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
 					quoted_post_id INTEGER DEFAULT 0,
-					file_id INTEGER REFERENCES files(id) ON DELETE CASCADE
+					file text
 				);
 
 				create table if not exists files (
@@ -65,12 +65,12 @@ class Database {
 		)
 		
 		this.queries = {
-			insertPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file_id) values (?,?,?,?,?,?,?,?,?,?)"),
-			getPosts: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
-			getPostById: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.path, p.depth, p.created_at from posts p where id = ?"),
+			insertPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file) values (?,?,?,?,?,?,?,?,?,?)"),
+			getPosts: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at, p.file, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
+			getPostById: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.path, p.depth, p.file, p.created_at from posts p where id = ?"),
 			deletePostById: this.database.prepare("delete from posts where id = ?"),
 
-			getReplies: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id = ? group by p.id order by p.created_at desc")
+			getReplies: this.database.prepare("select p.id, p.username, p.content, p.upvotes, p.file, p.created_at, count(c.id) as reply_count from posts p left join posts c on c.parent_id = p.id where p.parent_id = ? group by p.id order by p.created_at desc")
 		}
 	}
 
@@ -87,7 +87,7 @@ class Database {
 				data.updated_at,
 				data.thread_id,
 				data.parent_id,
-				data.file_id)
+				data.file)
 			const id = info.lastInsertRowid
 			this.database.prepare(`UPDATE posts SET thread_id = ?, path = ? WHERE id = ?`).run(id, `${id}/`, id)
 			return id
@@ -110,7 +110,7 @@ class Database {
 				data.updated_at,
 				parent.thread_id,
 				parent.id,
-				data.file_id)
+				data.file)
 			const id = info.lastInsertRowid
 			this.database.prepare(`UPDATE posts SET path = ? WHERE id = ?`).run(`${parent.path}${id}/`, id)
 			return id
@@ -136,7 +136,7 @@ class Database {
 		// console.log(pathArray)
 		const questionString = Array(pathArray.length).fill("?").join(",")
 		// console.log(questionString)
-		let statement = `SELECT p.id, p.username, p.content, p.upvotes, p.created_at, count(c.id) as reply_count FROM posts p left join posts c on c.parent_id = p.id WHERE p.path IN (${questionString}) group by p.id ORDER BY p.depth`
+		let statement = `SELECT p.id, p.username, p.content, p.upvotes, p.file, p.created_at, count(c.id) as reply_count FROM posts p left join posts c on c.parent_id = p.id WHERE p.path IN (${questionString}) group by p.id ORDER BY p.depth`
 		// console.log(statement)
 		return this.database.prepare(statement).all(...pathArray)
 	}

@@ -2,7 +2,6 @@ import 'dotenv/config'
 import express from 'express';
 import path from "path";
 import cors from 'cors'
-import compression from 'compression';
 import { fileURLToPath } from "url";
 import { mainRoute } from './routes/main.route.js';
 
@@ -15,12 +14,9 @@ if (process.env.NODE_ENV === 'development') {
 	app.use(cors())
 }
 
-app.use(compression())
-app.use(express.json({limit : '1kb'}))
 app.use('/api', mainRoute)
 
-
-app.use('', express.static(path.join(__dirname, "public/browser")));
+app.use('', express.static(path.join(__dirname, "public", "browser"), {maxAge : '1y'}));
 app.use('/public', express.static(path.join(__dirname, "public"), {maxAge : '1y'}));
 app.get('/*path', (req, res, next) => {
     return res.sendFile(path.join(__dirname, "public", "browser", "index.html"))
