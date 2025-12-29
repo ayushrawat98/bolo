@@ -77,7 +77,7 @@ class Database {
 
 			insertLike : this.database.prepare("insert into likes (post_id, ip) values (?,?)"),
 
-			getReplies: this.database.prepare("select p.id, p.username, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) AS likes from posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id = p.id left join (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id = p.id  where p.parent_id = ? order by likes desc")
+			getReplies: this.database.prepare("select p.id, p.username, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) AS likes from posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id = p.id left join (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id = p.id  where p.parent_id = ? order by likes desc, created_at desc")
 		}
 	}
 

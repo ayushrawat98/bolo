@@ -21,7 +21,7 @@ route.get('/posts', async (req, res, next) => {
 
 route.post('/posts', blockerWrapper, rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
-	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content, ip: req.socket.remoteAddress, path: '', depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: null, file: req?.file?.filename }
+	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content.trim(), ip: req.socket.remoteAddress, path: '', depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: null, file: req?.file?.filename }
 	let status = instance.insertParentPost(data)
 	return res.status(201).send(status)
 })
@@ -34,7 +34,7 @@ route.get('/posts/:id', async (req, res, next) => {
 
 route.post('/posts/:id',blockerWrapper, rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
-	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content, ip: req.socket.remoteAddress, path: "", depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: req.params.id, file: req?.file?.filename }
+	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content.trim(), ip: req.socket.remoteAddress, path: "", depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: req.params.id, file: req?.file?.filename }
 	let status = instance.insertChildPost(data)
 	return res.status(201).send(status)
 })
