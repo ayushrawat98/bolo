@@ -56,17 +56,32 @@ class Database {
 					PRIMARY KEY (post_id, ip)
 				);
 
+				CREATE TABLE IF NOT EXISTS notifications (
+					id integer primary key,
+					name text not null,
+					parent_id integer not null,
+					child_id integer not null,
+					seen INTEGER DEFAULT 0,
+					type TEXT DEFAULT 'reply',
+  					created_at TEXT not null,
+					UNIQUE(name, parent_id, child_id),
+					FOREIGN KEY (parent_id) REFERENCES posts(id) ON DELETE CASCADE,
+  					FOREIGN KEY (child_id)  REFERENCES posts(id) ON DELETE CASCADE
+				);
+
 				CREATE INDEX if not exists idx_posts_parent ON posts(parent_id);
 
 				CREATE INDEX if not exists idx_posts_path ON posts(path);
 
 				CREATE INDEX if not exists idx_posts_depth ON posts(depth);
 
+				CREATE INDEX IF NOT EXISTS idx_notifications_user_time ON notifications(name, created_at DESC);
+
             `
 		)
 		
 		this.queries = {
-			insertPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file) values (?,?,?,?,?,?,?,?,?,?)"),
+			createPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file) values (?,?,?,?,?,?,?,?,?,?)"),
 			// getPosts: this.database.prepare("select p.id, p.username, p.content, p.created_at, p.file, count(c.id) as reply_count, count(l.post_id) as likes from posts p left join posts c on c.parent_id = p.id left join likes l on l.post_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
 			getPosts : this.database.prepare("SELECT p.id,p.username,p.content,p.created_at,p.file,COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) AS likes FROM posts p LEFT JOIN (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id=p.id LEFT JOIN (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id=p.id WHERE p.parent_id IS NULL ORDER BY p.created_at DESC"),
 			getPostById: this.database.prepare("select p.id, p.username, p.content, p.path, p.depth, p.file, p.created_at from posts p where id = ?"), //add likes and replies coalesce from above
@@ -75,15 +90,18 @@ class Database {
 			updateParentPost : this.database.prepare(`UPDATE posts SET thread_id = ?, path = ? WHERE id = ?`),
 			updateChildPost : this.database.prepare(`UPDATE posts SET path = ? WHERE id = ?`),
 
-			insertLike : this.database.prepare("insert into likes (post_id, ip) values (?,?)"),
+			createLike : this.database.prepare("insert into likes (post_id, ip) values (?,?)"),
 
-			getReplies: this.database.prepare("select p.id, p.username, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) AS likes from posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id = p.id left join (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id = p.id  where p.parent_id = ? order by likes desc, created_at desc")
+			getReplies: this.database.prepare("select p.id, p.username, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) AS likes from posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id = p.id left join (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id = p.id  where p.parent_id = ? order by likes desc, created_at desc"),
+
+			createNotification : this.database.prepare("insert into notifications (name, parent_id, child_id, created_at) values (?, ?, ?, ?)"),
+			getNotifications : this.database.prepare("select n.parent_id, n.child_id, p.content as parent_content, p.created_at as parent_created_at, c.content as child_content, c.created_at as child_created_at from notifications n left join posts p on p.id = n.parent_id left join posts c on c.id = n.child_id where n.name = ? order by n.created_at desc limit 50")
 		}
 	}
 
-	insertParentPost(data) {
+	createParentPost(data) {
 		const createThread = this.database.transaction((data) => {
-			const info = this.queries.insertPost.run(
+			const info = this.queries.createPost.run(
 				data.username,
 				data.content,
 				data.ip,
@@ -101,11 +119,11 @@ class Database {
 		return createThread(data)
 	}
 
-	insertChildPost(data) {
+	createChildPost(data) {
 		const createThread = this.database.transaction((data) => {
 			const parent = this.queries.getPostById.get(data.parent_id)
 			if (!parent) throw new Error('Parent not found')
-			const info = this.queries.insertPost.run(
+			const info = this.queries.createPost.run(
 				data.username,
 				data.content,
 				data.ip,
@@ -118,6 +136,9 @@ class Database {
 				data.file)
 			const id = info.lastInsertRowid
 			this.queries.updateChildPost.run(`${parent.path}${id}/`, id)
+			if(parent.username != 'Anonymouse' && parent.username != data.username){
+				this.queries.createNotification.run(parent.username, parent.id, id, Date.now())
+			}
 			return id
 		})
 		return createThread(data)
@@ -143,8 +164,12 @@ class Database {
 		return this.database.prepare(statement).all(...pathArray)
 	}
 
-	insertLike(post_id, ip){
-		return this.queries.insertLike.run(post_id, ip)
+	createLike(post_id, ip){
+		return this.queries.createLike.run(post_id, ip)
+	}
+	
+	getNotifications(name){
+		return this.queries.getNotifications.all(name)
 	}
 
 	getParentPaths(path) {

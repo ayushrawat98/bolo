@@ -22,7 +22,7 @@ route.get('/posts', async (req, res, next) => {
 route.post('/posts', blockerWrapper, rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
 	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content.trim(), ip: req.socket.remoteAddress, path: '', depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: null, file: req?.file?.filename }
-	let status = instance.insertParentPost(data)
+	let status = instance.createParentPost(data)
 	return res.status(201).send(status)
 })
 
@@ -35,13 +35,18 @@ route.get('/posts/:id', async (req, res, next) => {
 route.post('/posts/:id',blockerWrapper, rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
 	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content.trim(), ip: req.socket.remoteAddress, path: "", depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: req.params.id, file: req?.file?.filename }
-	let status = instance.insertChildPost(data)
+	let status = instance.createChildPost(data)
 	return res.status(201).send(status)
 })
 
 route.post('/posts/:id/likes',blockerWrapper, async (req, res, next) => {
-	let status = instance.insertLike(req.params.id, req.socket.remoteAddress)
+	let status = instance.createLike(req.params.id, req.socket.remoteAddress)
 	return res.status(201).send(status)
+})
+
+route.get('/users/:name/notifications', async (req, res, next) => {
+	let n = instance.getNotifications(req.params.name)
+	return res.status(200).send(n)
 })
 
 
