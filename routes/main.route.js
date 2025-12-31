@@ -16,10 +16,12 @@ const route = express.Router()
 
 route.get('/posts', async (req, res, next) => {
 	let data = instance.getParentPosts()
-	return res.status(200).send(data)
+	let hours48 = new Date(Date.now() - 48*60*60*1000).toISOString()
+	let index = data.findIndex(value => value.created_at  < hours48)
+	return res.status(200).send(data.slice(0,index == -1 ? data.length : index))
 })
 
-route.post('/posts', blockerWrapper, rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
+route.post('/posts', rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
 	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content.trim(), ip: req.socket.remoteAddress, path: '', depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: null, file: req?.file?.filename }
 	let status = instance.createParentPost(data)
@@ -32,7 +34,7 @@ route.get('/posts/:id', async (req, res, next) => {
 	return res.status(200).send({p : parentdata, c : replies})
 })
 
-route.post('/posts/:id',blockerWrapper, rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
+route.post('/posts/:id', rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
 	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content.trim(), ip: req.socket.remoteAddress, path: "", depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: req.params.id, file: req?.file?.filename }
 	let status = instance.createChildPost(data)
@@ -57,31 +59,6 @@ function blockerWrapper(req,res,next){
 		next()
 	}
 }
-
-
-// // Configure express.raw to handle binary streams
-// // 'type' must match the Content-Type sent by Angular
-// app.use(express.raw({ 
-//   type: (req) => true, // Match any type, or use 'application/octet-stream'
-//   limit: '10mb' 
-// }));
-
-// app.post('/upload-raw', (req, res) => {
-//   // The binary data is available in req.body as a Buffer
-//   const binaryData = req.body;
-//   const fileName = req.headers['x-file-name'] || 'uploaded_file.bin';
-
-//   if (!binaryData || binaryData.length === 0) {
-//     return res.status(400).send('No binary data received.');
-//   }
-
-//   // Save the buffer directly to disk
-//   fs.writeFile(`./uploads/${fileName}`, binaryData, (err) => {
-//     if (err) return res.status(500).send('Save failed');
-//     res.json({ message: 'File saved successfully via raw transfer' });
-//   });
-// });
-
 
 
 export { route as mainRoute }
