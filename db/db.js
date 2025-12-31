@@ -83,7 +83,7 @@ class Database {
 		this.queries = {
 			createPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file) values (?,?,?,?,?,?,?,?,?,?)"),
 			// getPosts: this.database.prepare("select p.id, p.username, p.content, p.created_at, p.file, count(c.id) as reply_count, count(l.post_id) as likes from posts p left join posts c on c.parent_id = p.id left join likes l on l.post_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
-			getPosts : this.database.prepare("SELECT p.id,p.content,p.created_at,p.file,COALESCE(r.reply_count,0) AS reply_count, COALESCE(r.unique_user, 0)  AS unique_user_count , COALESCE(l.like_count,0) AS likes FROM posts p LEFT JOIN (SELECT parent_id,COUNT(*) AS reply_count, COUNT(DISTINCT ip) AS unique_user FROM posts GROUP BY parent_id) r ON r.parent_id=p.id LEFT JOIN (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id=p.id WHERE p.parent_id IS NULL ORDER BY p.updated_at DESC, likes desc"),
+			getPosts : this.database.prepare("SELECT p.id,p.content,p.created_at,p.file,COALESCE(r.reply_count,0) AS reply_count, COALESCE(r.unique_user, 0)  AS unique_user_count , COALESCE(l.like_count,0) AS likes FROM posts p LEFT JOIN (SELECT parent_id,COUNT(*) AS reply_count, COUNT(DISTINCT ip) AS unique_user FROM posts GROUP BY parent_id) r ON r.parent_id=p.id LEFT JOIN (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id=p.id WHERE p.parent_id IS NULL ORDER BY p.created_at DESC"),
 			getPostById: this.database.prepare("select p.id, p.username, p.content, p.path, p.depth, p.file, p.created_at from posts p where id = ?"), //add likes and replies coalesce from above
 			deletePostById: this.database.prepare("delete from posts where id = ?"),
 
@@ -138,7 +138,6 @@ class Database {
 				data.file)
 			const id = info.lastInsertRowid
 			this.queries.updateChildPost.run(`${parent.path}${id}/`, id)
-			this,this.queries.updateParentPostTime.run(new Date().toISOString(), parent.id)
 			if(parent.username != 'Anonymouse' && parent.username != data.username){
 				this.queries.createNotification.run(parent.username, parent.id, id, Date.now())
 			}
