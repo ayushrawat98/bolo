@@ -83,7 +83,7 @@ class Database {
 		this.queries = {
 			createPost: this.database.prepare("insert into posts (username, content, ip, path, depth, created_at, updated_at, thread_id, parent_id, file) values (?,?,?,?,?,?,?,?,?,?)"),
 			// getPosts: this.database.prepare("select p.id, p.username, p.content, p.created_at, p.file, count(c.id) as reply_count, count(l.post_id) as likes from posts p left join posts c on c.parent_id = p.id left join likes l on l.post_id = p.id where p.parent_id is null group by p.id order by p.created_at desc"),
-			getPosts : this.database.prepare("SELECT p.id,p.username,p.content,p.created_at,p.file,COALESCE(r.reply_count,0) AS reply_count, COALESCE(r.unique_user, 0)  AS unique_user_count , COALESCE(l.like_count,0) AS likes FROM posts p LEFT JOIN (SELECT parent_id,COUNT(*) AS reply_count, COUNT(DISTINCT ip) AS unique_user FROM posts GROUP BY parent_id) r ON r.parent_id=p.id LEFT JOIN (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id=p.id WHERE p.parent_id IS NULL ORDER BY p.created_at DESC"),
+			getPosts : this.database.prepare("SELECT p.id,p.content,p.created_at,p.file,COALESCE(r.reply_count,0) AS reply_count, COALESCE(r.unique_user, 0)  AS unique_user_count , COALESCE(l.like_count,0) AS likes FROM posts p LEFT JOIN (SELECT parent_id,COUNT(*) AS reply_count, COUNT(DISTINCT ip) AS unique_user FROM posts GROUP BY parent_id) r ON r.parent_id=p.id LEFT JOIN (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id=p.id WHERE p.parent_id IS NULL ORDER BY p.created_at DESC"),
 			getPostById: this.database.prepare("select p.id, p.username, p.content, p.path, p.depth, p.file, p.created_at from posts p where id = ?"), //add likes and replies coalesce from above
 			deletePostById: this.database.prepare("delete from posts where id = ?"),
 
@@ -92,7 +92,7 @@ class Database {
 
 			createLike : this.database.prepare("insert into likes (post_id, ip) values (?,?)"),
 
-			getReplies: this.database.prepare("select p.id, p.username, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) AS likes from posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id = p.id left join (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id = p.id  where p.parent_id = ? order by likes desc, created_at desc"),
+			getReplies: this.database.prepare("select p.id, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) AS likes from posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id = p.id left join (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id = p.id  where p.parent_id = ? order by likes desc, created_at desc"),
 
 			createNotification : this.database.prepare("insert into notifications (name, parent_id, child_id, created_at) values (?, ?, ?, ?)"),
 			getNotifications : this.database.prepare("select n.parent_id, n.child_id, p.content as parent_content, p.created_at as parent_created_at, c.content as child_content, c.created_at as child_created_at from notifications n left join posts p on p.id = n.parent_id left join posts c on c.id = n.child_id where n.name = ? order by n.created_at desc limit 50")
@@ -160,7 +160,7 @@ class Database {
 		const post = this.getPostById(id)
 		const pathArray = this.getParentPaths(post.path)
 		const questionString = Array(pathArray.length).fill("?").join(",")
-		let statement = `SELECT p.id, p.username, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) as likes FROM posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id=p.id LEFT JOIN (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id=p.id  WHERE p.path IN (${questionString}) ORDER BY p.depth`
+		let statement = `SELECT p.id, p.content, p.file, p.created_at, COALESCE(r.reply_count,0) AS reply_count,COALESCE(l.like_count,0) as likes FROM posts p left join (SELECT parent_id,COUNT(*) AS reply_count FROM posts GROUP BY parent_id) r ON r.parent_id=p.id LEFT JOIN (SELECT post_id,COUNT(*) AS like_count FROM likes GROUP BY post_id) l ON l.post_id=p.id  WHERE p.path IN (${questionString}) ORDER BY p.depth`
 		return this.database.prepare(statement).all(...pathArray)
 	}
 
