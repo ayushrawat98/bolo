@@ -16,9 +16,9 @@ const route = express.Router()
 
 route.get('/posts', async (req, res, next) => {
 	let data = instance.getParentPosts()
-	let hours48 = new Date(Date.now() - 48*60*60*1000).toISOString()
-	let index = data.findIndex(value => value.created_at  < hours48)
-	return res.status(200).send(data.slice(0,index == -1 ? data.length : index))
+	// let hours48 = new Date(Date.now() - 48*60*60*1000).toISOString()
+	// let index = data.findIndex(value => value.created_at  < hours48)
+	return res.status(200).send(data)
 })
 
 route.post('/posts', rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
