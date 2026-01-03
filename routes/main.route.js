@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import nodeIpgeoblock from 'node-ipgeoblock';
 import { rateLimitPosts } from '../lib/botBasher.js';
-import upload, { upload2 } from '../lib/multer.js';
+import {upload, upload2 } from '../lib/multer.js';
 import { filetype } from '../lib/filetype.js';
 
 
