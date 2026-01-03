@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import nodeIpgeoblock from 'node-ipgeoblock';
 import { rateLimitPosts } from '../lib/botBasher.js';
-import upload from '../lib/multer.js';
+import upload, { upload2 } from '../lib/multer.js';
 import { filetype } from '../lib/filetype.js';
 
 
@@ -34,7 +34,7 @@ route.get('/posts/:id', async (req, res, next) => {
 	return res.status(200).send({p : parentdata, c : replies})
 })
 
-route.post('/posts/:id', rateLimitPosts, upload.single('file'), filetype, async (req, res, next) => {
+route.post('/posts/:id', rateLimitPosts, upload2.single('file'), filetype, async (req, res, next) => {
 	if(req.body.content.trim().length == 0) throw new Error("Empty")
 	let data = { username: req.body.username ?? 'Anonymouse', content: req.body.content.trim(), ip: req.socket.remoteAddress, path: "", depth: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), thread_id: null, parent_id: req.params.id, file: req?.file?.filename }
 	let status = instance.createChildPost(data)
